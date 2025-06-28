@@ -1,0 +1,39 @@
+### Configuração de CORS para a API Flask
+
+Para permitir que o frontend acesse a API Flask, adicione o seguinte código ao seu arquivo principal da API:
+
+```python
+from flask import Flask
+from flask_cors import CORS
+
+app = Flask(__name__)
+# Configurar CORS para permitir requisições do frontend
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Resto do seu código...
+```
+
+Você precisará instalar o pacote flask-cors:
+
+```bash
+pip install flask-cors
+```
+
+Esta configuração permite que qualquer origem (incluindo seu frontend Next.js) faça requisições para rotas que começam com `/api/`.
+
+### Configuração mais segura para produção
+
+Para ambientes de produção, é recomendado especificar exatamente quais origens são permitidas:
+
+```python
+from flask import Flask
+from flask_cors import CORS
+
+app = Flask(__name__)
+# Configurar CORS apenas para origens específicas
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://seu-site-de-producao.com"]}})
+
+# Resto do seu código...
+```
+
+Certifique-se de que a API Flask está configurada para aceitar os métodos HTTP que você está usando (GET, POST, PUT, DELETE, etc.). 

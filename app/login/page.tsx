@@ -89,22 +89,6 @@ export default function LoginPage() {
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p className="mb-2">Usuários de teste:</p>
-            <div className="text-xs space-y-1">
-              <p>
-                <strong>RH:</strong> maria.rh@techsolutions.com
-              </p>
-              <p>
-                <strong>Gestor:</strong> joao.gestor@techsolutions.com
-              </p>
-              <p>
-                <strong>Comum:</strong> ana.dev@techsolutions.com
-              </p>
-              <p className="text-gray-500">Senha: 123456</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -76,17 +76,17 @@ export default function DashboardPage() {
         
         // Usar dados mockados em caso de erro
         setStats({
-          totalEventos: 45,
-          eventosPendentes: 8,
-          eventosAprovados: 32,
-          eventosRejeitados: 5,
-          totalUsuarios: 24,
-          totalGrupos: 4,
+    totalEventos: 45,
+    eventosPendentes: 8,
+    eventosAprovados: 32,
+    eventosRejeitados: 5,
+    totalUsuarios: 24,
+    totalGrupos: 4,
         })
       } finally {
         setIsLoading(false)
       }
-    }
+  }
     
     if (user) {
       fetchDashboardData()

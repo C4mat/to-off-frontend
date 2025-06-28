@@ -18,11 +18,14 @@ export function formatCNPJ(cnpj: number | string): string {
 }
 
 // Formatar data: 2021-01-15 -> 15/01/2021
-export function formatDate(date: string | Date): string {
+export function formatDate(date: string | Date, includeTime: boolean = false): string {
   if (!date) return 'N/A'
   
   try {
     const d = typeof date === 'string' ? new Date(date) : date
+    if (includeTime) {
+      return d.toLocaleString('pt-BR')
+    }
     return d.toLocaleDateString('pt-BR')
   } catch (error) {
     return 'Data inválida'
@@ -109,6 +112,112 @@ export function hasPermission(
   if (requireGestor && user.flag_gestor !== 'S') {
     return false
   }
+  
+  return true
+}
+
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+export function getStatusColor(status: string): string {
+  switch (status.toLowerCase()) {
+    case 'aprovado':
+      return 'bg-green-500'
+    case 'pendente':
+      return 'bg-yellow-500'
+    case 'rejeitado':
+      return 'bg-red-500'
+    default:
+      return 'bg-gray-500'
+  }
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return `${text.substring(0, maxLength)}...`
+}
+
+export function formatPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '')
+  
+  if (cleaned.length === 11) {
+    return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  } else if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  }
+  
+  return phone
+}
+
+export function isValidCPF(cpf: string): boolean {
+  const cleaned = cpf.replace(/\D/g, '')
+  if (cleaned.length !== 11) return false
+  
+  // Verifica se todos os dígitos são iguais
+  if (/^(\d)\1+$/.test(cleaned)) return false
+  
+  // Validação dos dígitos verificadores
+  let sum = 0
+  let remainder
+  
+  for (let i = 1; i <= 9; i++) {
+    sum = sum + parseInt(cleaned.substring(i-1, i)) * (11 - i)
+  }
+  
+  remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(cleaned.substring(9, 10))) return false
+  
+  sum = 0
+  for (let i = 1; i <= 10; i++) {
+    sum = sum + parseInt(cleaned.substring(i-1, i)) * (12 - i)
+  }
+  
+  remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(cleaned.substring(10, 11))) return false
+  
+  return true
+}
+
+export function isValidCNPJ(cnpj: string): boolean {
+  const cleaned = cnpj.replace(/\D/g, '')
+  if (cleaned.length !== 14) return false
+  
+  // Verifica se todos os dígitos são iguais
+  if (/^(\d)\1+$/.test(cleaned)) return false
+  
+  // Validação dos dígitos verificadores
+  let size = cleaned.length - 2
+  let numbers = cleaned.substring(0, size)
+  const digits = cleaned.substring(size)
+  let sum = 0
+  let pos = size - 7
+  
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--
+    if (pos < 2) pos = 9
+  }
+  
+  let result = sum % 11 < 2 ? 0 : 11 - sum % 11
+  if (result !== parseInt(digits.charAt(0))) return false
+  
+  size = size + 1
+  numbers = cleaned.substring(0, size)
+  sum = 0
+  pos = size - 7
+  
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--
+    if (pos < 2) pos = 9
+  }
+  
+  result = sum % 11 < 2 ? 0 : 11 - sum % 11
+  if (result !== parseInt(digits.charAt(1))) return false
   
   return true
 }

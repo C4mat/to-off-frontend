@@ -20,14 +20,25 @@ function RouteGuardContent({ children, requiredUserType, requireGestor = false }
 
   useEffect(() => {
     if (!isLoading) {
+      console.log("RouteGuard verificando acesso:", { 
+        pathname, 
+        isAuthenticated, 
+        userType: user?.tipo_usuario,
+        requiredUserType,
+        requireGestor,
+        isGestor: user?.flag_gestor === "S"
+      });
+      
       // Se não está autenticado e não está na página de login
       if (!isAuthenticated && pathname !== "/login") {
+        console.log("Usuário não autenticado, redirecionando para /login");
         router.push("/login")
         return
       }
 
       // Se está autenticado mas está na página de login
       if (isAuthenticated && pathname === "/login") {
+        console.log("Usuário já autenticado, redirecionando para /dashboard");
         router.push("/dashboard")
         return
       }
@@ -36,20 +47,25 @@ function RouteGuardContent({ children, requiredUserType, requireGestor = false }
       if (isAuthenticated && user) {
         // Verificar tipo de usuário
         if (requiredUserType && user.tipo_usuario !== requiredUserType) {
+          console.log(`Acesso negado: usuário é ${user.tipo_usuario}, mas precisa ser ${requiredUserType}`);
           router.push("/unauthorized")
           return
         }
 
         // Verificar se precisa ser gestor
         if (requireGestor && user.flag_gestor !== "S") {
+          console.log("Acesso negado: usuário não é gestor");
           router.push("/unauthorized")
           return
         }
       }
+      
+      console.log("Acesso permitido à rota:", pathname);
     }
   }, [isLoading, isAuthenticated, user, pathname, router, requiredUserType, requireGestor])
 
   if (isLoading) {
+    console.log("RouteGuard: carregando...");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="space-y-4 w-full max-w-md">
@@ -63,6 +79,7 @@ function RouteGuardContent({ children, requiredUserType, requireGestor = false }
 
   // Se não está autenticado e está tentando acessar página protegida
   if (!isAuthenticated && pathname !== "/login") {
+    console.log("RouteGuard: não renderizando conteúdo para usuário não autenticado");
     return null
   }
 

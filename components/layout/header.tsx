@@ -15,13 +15,17 @@ import { Menu, Search, Bell, User, LogOut, Settings } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useSidebar } from "@/hooks/use-sidebar"
 import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { NotificationDropdown } from "./notification-dropdown"
+import { ReactNode } from "react"
 
 interface HeaderProps {
   title?: string
   subtitle?: string
+  actions?: ReactNode
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
+export function Header({ title, subtitle, actions }: HeaderProps) {
   const { user, logout } = useAuth()
   const { toggle } = useSidebar()
 
@@ -54,37 +58,38 @@ export function Header({ title, subtitle }: HeaderProps) {
         )}
       </div>
 
-      {/* Center - Search */}
-      <div className="hidden md:flex flex-1 max-w-md mx-8">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Buscar eventos, usuários..." className="pl-10 pr-4" />
-        </div>
+      {/* Center - Search or Actions */}
+      <div className="hidden md:flex flex-1 max-w-md mx-8 justify-center">
+        {actions ? (
+          actions
+        ) : (
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input placeholder="Buscar eventos, usuários..." className="pl-10 pr-4" />
+          </div>
+        )}
       </div>
 
       {/* Right side */}
       <div className="flex items-center space-x-3">
+        {/* Mobile Actions */}
+        {actions && (
+          <div className="md:hidden">
+            {actions}
+          </div>
+        )}
+        
         {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-            3
-          </span>
-        </Button>
+        <NotificationDropdown />
 
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2 h-10">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">
-                  {user?.nome
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)}
-                </span>
-              </div>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="/placeholder-user.jpg" alt={user?.nome || "Avatar"} />
+                <AvatarFallback>{user?.nome?.charAt(0) || "U"}</AvatarFallback>
+              </Avatar>
               <div className="hidden md:block text-left">
                 <p className="text-sm font-medium text-gray-900">{user?.nome}</p>
                 <p className="text-xs text-gray-500">{getUserTypeLabel(user?.tipo_usuario || "")}</p>

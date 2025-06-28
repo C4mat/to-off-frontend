@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, Users, Pencil, Trash2 } from "lucide-react"
+import { Search, Plus, Users, Pencil, Trash2, Check, X } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/hooks/use-toast"
 
@@ -73,49 +73,54 @@ export default function GruposPage() {
     return user.tipo_usuario === "rh"
   }
 
-  // Função para excluir grupo
-  const handleExcluir = async (id: number) => {
+  // Função para ativar/desativar grupo
+  const handleAtivarDesativar = async (id: number, ativar: boolean) => {
     if (!canManageGrupos()) {
       toast({
         title: "Sem permissão",
-        description: "Você não tem permissão para excluir grupos",
+        description: "Você não tem permissão para alterar o status de grupos",
         variant: "destructive",
       })
       return
     }
 
-    if (!confirm("Tem certeza que deseja desativar este grupo?")) {
+    const confirmMessage = ativar 
+      ? "Tem certeza que deseja ativar este grupo?" 
+      : "Tem certeza que deseja desativar este grupo?"
+    
+    if (!confirm(confirmMessage)) {
       return
     }
 
     try {
-      const response = await apiClient.deleteGrupo(id)
+      const response = await apiClient.updateGrupo(id, { ativo: ativar })
       
       if (response.data) {
+        const statusMessage = ativar ? "ativado" : "desativado"
         toast({
           title: "Sucesso",
-          description: "Grupo desativado com sucesso",
+          description: `Grupo ${statusMessage} com sucesso`,
         })
         
-        // Atualizar lista de grupos - mudar status para inativo
+        // Atualizar lista de grupos
         setGrupos(grupos.map(grupo => 
-          grupo.id === id ? { ...grupo, ativo: false } : grupo
+          grupo.id === id ? { ...grupo, ativo: ativar } : grupo
         ))
         setFilteredGrupos(filteredGrupos.map(grupo => 
-          grupo.id === id ? { ...grupo, ativo: false } : grupo
+          grupo.id === id ? { ...grupo, ativo: ativar } : grupo
         ))
       } else {
         toast({
           title: "Erro",
-          description: response.error || "Não foi possível desativar o grupo",
+          description: response.error || `Não foi possível ${ativar ? 'ativar' : 'desativar'} o grupo`,
           variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("Erro ao desativar grupo:", error)
+      console.error(`Erro ao ${ativar ? 'ativar' : 'desativar'} grupo:`, error)
       toast({
         title: "Erro",
-        description: "Não foi possível desativar o grupo",
+        description: `Não foi possível ${ativar ? 'ativar' : 'desativar'} o grupo`,
         variant: "destructive",
       })
     }
@@ -197,27 +202,44 @@ export default function GruposPage() {
                           </TableCell>
                           <TableCell>
                             {grupo.ativo ? (
-                              <Badge className="bg-green-600">Ativo</Badge>
+                              <Badge className="bg-green-500 hover:bg-green-600">Ativo</Badge>
                             ) : (
-                              <Badge variant="secondary">Inativo</Badge>
+                              <Badge variant="destructive">Inativo</Badge>
                             )}
                           </TableCell>
                           {canManageGrupos() && (
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="sm" asChild>
+                              <div className="flex justify-end items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  asChild
+                                >
                                   <Link href={`/grupos/editar/${grupo.id}`}>
                                     <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Editar</span>
                                   </Link>
                                 </Button>
-                                {grupo.ativo && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => handleExcluir(grupo.id)}
+                                
+                                {grupo.ativo ? (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleAtivarDesativar(grupo.id, false)}
+                                    className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Desativar</span>
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleAtivarDesativar(grupo.id, true)}
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                    <span className="sr-only">Ativar</span>
                                   </Button>
                                 )}
                               </div>

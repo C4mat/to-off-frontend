@@ -25,7 +25,10 @@ import {
   Trash2,
   Shield,
   User,
-  UserCog
+  UserCog,
+  UserX,
+  Check,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/hooks/use-toast"
@@ -120,51 +123,73 @@ export default function UsuariosPage() {
     return false
   }
 
-  // Função para excluir usuário
-  const handleExcluir = async (cpf: number) => {
-    const usuarioToDelete = usuarios.find(u => u.cpf === cpf)
+  const handleAtivarDesativar = async (cpf: number, ativar: boolean) => {
+    const usuarioToUpdate = usuarios.find(u => u.cpf === cpf)
     
-    if (!usuarioToDelete || !canDeleteUser(usuarioToDelete)) {
+    if (!usuarioToUpdate) {
+      toast({
+        title: "Erro",
+        description: "Usuário não encontrado",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    const podeDesativar = canDeleteUser(usuarioToUpdate)
+    if (!podeDesativar) {
       toast({
         title: "Sem permissão",
-        description: "Você não tem permissão para desativar este usuário",
+        description: "Você não tem permissão para alterar o status deste usuário",
         variant: "destructive",
       })
       return
     }
 
-    if (!confirm("Tem certeza que deseja desativar este usuário?")) {
+    const confirmMessage = ativar 
+      ? "Tem certeza que deseja ativar este usuário?" 
+      : "Tem certeza que deseja desativar este usuário?"
+    
+    if (!confirm(confirmMessage)) {
       return
     }
 
     try {
-      const response = await apiClient.deleteUsuario(cpf)
+      let response
+      
+      if (ativar) {
+        // Ativa o usuário
+        response = await apiClient.updateUsuario(cpf, { ativo: true })
+      } else {
+        // Desativa o usuário
+        response = await apiClient.updateUsuario(cpf, { ativo: false })
+      }
       
       if (response.data) {
+        const statusMessage = ativar ? "ativado" : "desativado"
         toast({
           title: "Sucesso",
-          description: "Usuário desativado com sucesso",
+          description: `Usuário ${statusMessage} com sucesso`,
         })
         
-        // Atualizar lista de usuários - mudar status para inativo
+        // Atualizar lista de usuários
         setUsuarios(usuarios.map(usuario => 
-          usuario.cpf === cpf ? { ...usuario, ativo: false } : usuario
+          usuario.cpf === cpf ? { ...usuario, ativo: ativar } : usuario
         ))
         setFilteredUsuarios(filteredUsuarios.map(usuario => 
-          usuario.cpf === cpf ? { ...usuario, ativo: false } : usuario
+          usuario.cpf === cpf ? { ...usuario, ativo: ativar } : usuario
         ))
       } else {
         toast({
           title: "Erro",
-          description: response.error || "Não foi possível desativar o usuário",
+          description: response.error || `Não foi possível ${ativar ? 'ativar' : 'desativar'} o usuário`,
           variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("Erro ao desativar usuário:", error)
+      console.error(`Erro ao ${ativar ? 'ativar' : 'desativar'} usuário:`, error)
       toast({
         title: "Erro",
-        description: "Não foi possível desativar o usuário",
+        description: `Não foi possível ${ativar ? 'ativar' : 'desativar'} o usuário`,
         variant: "destructive",
       })
     }
@@ -234,7 +259,7 @@ export default function UsuariosPage() {
                     </TableHeader>
                     <TableBody>
                       {filteredUsuarios.map((usuario) => (
-                        <TableRow key={usuario.cpf}>
+                        <TableRow key={usuario.cpf} className={!usuario.ativo ? "opacity-60" : ""}>
                           <TableCell className="font-medium">{usuario.nome}</TableCell>
                           <TableCell>
                             <div>
@@ -255,29 +280,62 @@ export default function UsuariosPage() {
                           <TableCell>{formatDate(usuario.inicio_na_empresa)}</TableCell>
                           <TableCell>
                             {usuario.ativo ? (
-                              <Badge className="bg-green-600">Ativo</Badge>
+                              <Badge className="bg-green-500 hover:bg-green-600">Ativo</Badge>
                             ) : (
-                              <Badge variant="secondary">Inativo</Badge>
+                              <Badge variant="destructive">Inativo</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end items-center gap-2">
                               {canEditUser(usuario) && (
-                                <Button variant="ghost" size="sm" asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  asChild
+                                >
                                   <Link href={`/usuarios/editar/${usuario.cpf}`}>
                                     <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Editar</span>
                                   </Link>
                                 </Button>
                               )}
                               
-                              {usuario.ativo && canDeleteUser(usuario) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => handleExcluir(usuario.cpf)}
+                              {canDeleteUser(usuario) && (
+                                <>
+                                  {usuario.ativo ? (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => handleAtivarDesativar(usuario.cpf, false)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <UserX className="h-4 w-4" />
+                                      <span className="sr-only">Desativar</span>
+                                    </Button>
+                                  ) : (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => handleAtivarDesativar(usuario.cpf, true)}
+                                      className="text-green-600 hover:text-green-700"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                      <span className="sr-only">Ativar</span>
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                              
+                              {user && user.cpf === usuario.cpf && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  asChild
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Link href="/perfil">
+                                    <User className="h-4 w-4" />
+                                    <span className="sr-only">Meu Perfil</span>
+                                  </Link>
                                 </Button>
                               )}
                             </div>

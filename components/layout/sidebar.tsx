@@ -18,7 +18,7 @@ export function Sidebar({ className }: SidebarProps) {
   const { isOpen, toggle } = useSidebar()
   const { user } = useAuth()
 
-  return (
+    return (
     <>
       {/* Sidebar Toggle Button - visible only on mobile */}
       <Button
@@ -46,15 +46,15 @@ export function Sidebar({ className }: SidebarProps) {
             <Calendar className="h-8 w-8 text-blue-600" />
             <span className="text-xl font-semibold">Tô Off</span>
           </Link>
-        </div>
+          </div>
 
-        {/* User Info */}
+          {/* User Info */}
         <div className="border-b border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3">
             <div className="relative h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-lg font-medium text-gray-600">
               {user?.nome?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <div className="flex-1 min-w-0">
+              </div>
+              <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user?.nome || "Usuário"}
               </p>
@@ -65,24 +65,24 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
           <div className="mt-2">
             <Badge variant="outline" className="bg-gray-100">
-              {user?.tipo_usuario === "rh" ? "RH" : user?.tipo_usuario === "gestor" ? "Gestor" : "Comum"}
-            </Badge>
+                {user?.tipo_usuario === "rh" ? "RH" : user?.tipo_usuario === "gestor" ? "Gestor" : "Comum"}
+              </Badge>
             {user?.UF && (
               <Badge variant="outline" className="mt-2 ml-1 bg-gray-100">
                 {user.UF}
               </Badge>
             )}
+            </div>
           </div>
-        </div>
 
-        {/* Navigation */}
+          {/* Navigation */}
         <ScrollArea className="h-[calc(100vh-9rem)]">
           <div className="px-3 py-2">
             {navigationConfig.map((section) => (
               <div key={section.title} className="mb-4">
                 <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {section.title}
-                </h3>
+                      {section.title}
+                    </h3>
                 <div className="mt-1 space-y-1">
                   {section.items.map((item) => {
                     const isActive = pathname === item.href
@@ -105,7 +105,7 @@ export function Sidebar({ className }: SidebarProps) {
                     )
                   })}
                 </div>
-              </div>
+            </div>
             ))}
           </div>
         </ScrollArea>

@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://127.0.0.1:5000"
+// Use URL relativa quando estiver em produção para aproveitar o proxy do Next.js
+// Em desenvolvimento, use a URL completa da API
+const API_BASE_URL = process.env.NODE_ENV === "production" ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000")
 
 export interface ApiResponse<T = any> {
   data?: T
@@ -174,6 +176,17 @@ export interface DiasFerias {
   ultimo_periodo_aquisitivo_fim: string
 }
 
+export interface Notificacao {
+  id: number
+  usuario_cpf: number
+  titulo: string
+  mensagem: string
+  tipo: 'info' | 'warning' | 'error' | 'success'
+  lida: boolean
+  data_criacao: string
+  link?: string
+}
+
 class ApiClient {
   private baseURL: string
   private accessToken: string | null = null
@@ -188,29 +201,35 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`
+    
+    console.log(`Fazendo requisição para: ${url}`);
 
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    }
+    const headers = new Headers(options.headers);
+    headers.set("Content-Type", "application/json");
 
     if (this.accessToken) {
-      headers.Authorization = `Bearer ${this.accessToken}`
+      headers.set("Authorization", `Bearer ${this.accessToken}`);
+      console.log("Token de autenticação incluído na requisição");
     }
 
     try {
       if (process.env.NODE_ENV === "development" && this.useMockData(endpoint)) {
+        console.log(`Usando dados mockados para: ${endpoint}`);
         return this.getMockResponse<T>(endpoint, options)
       }
 
+      console.log(`Enviando requisição real para: ${url}`);
       const response = await fetch(url, {
         ...options,
         headers,
       })
 
+      console.log(`Resposta recebida de ${url} com status: ${response.status}`);
+      
       const data = await response.json()
 
       if (!response.ok) {
+        console.error(`Erro na requisição para ${url}:`, data);
         return {
           error: data.erro || data.message || "Erro na requisição",
         }
@@ -218,6 +237,7 @@ class ApiClient {
 
       return { data }
     } catch (error) {
+      console.error(`Erro ao fazer requisição para ${url}:`, error);
       return {
         error: error instanceof Error ? error.message : "Erro de conexão",
       }
@@ -490,8 +510,32 @@ class ApiClient {
     return this.request<DiasFerias>(`/api/ferias/disponivel/${cpf}`)
   }
 
+  async getNotificacoes(): Promise<ApiResponse<Notificacao[]>> {
+    return this.request<Notificacao[]>("/api/notificacoes")
+  }
+
+  async marcarNotificacaoComoLida(id: number): Promise<ApiResponse<{ status: string }>> {
+    return this.request<{ status: string }>(`/api/notificacoes/${id}/lida`, {
+      method: "PUT",
+    })
+  }
+
+  async marcarTodasNotificacoesComoLidas(): Promise<ApiResponse<{ status: string }>> {
+    return this.request<{ status: string }>("/api/notificacoes/lidas", {
+      method: "PUT",
+    })
+  }
+
+  async excluirNotificacao(id: number): Promise<ApiResponse<{ status: string }>> {
+    return this.request<{ status: string }>(`/api/notificacoes/${id}`, {
+      method: "DELETE",
+    })
+  }
+
   private useMockData(endpoint: string): boolean {
-    return true
+    // Forçar o uso da API real, independente das variáveis de ambiente
+    console.log("Forçando uso da API real para:", endpoint);
+    return false; // Sempre retorna false para garantir o uso da API real
   }
 
   private getMockResponse<T>(endpoint: string, options: RequestInit): ApiResponse<T> {
@@ -1021,6 +1065,61 @@ class ApiClient {
             }
           }
         } as unknown as T
+      }
+    }
+
+    if (endpoint === "/api/notificacoes") {
+      return {
+        data: [
+          {
+            id: 1,
+            usuario_cpf: 12345678900,
+            titulo: "Evento aprovado",
+            mensagem: "Seu evento de férias foi aprovado pelo gestor",
+            tipo: "success",
+            lida: false,
+            data_criacao: "2023-06-01T10:00:00",
+            link: "/eventos/1"
+          },
+          {
+            id: 2,
+            usuario_cpf: 12345678900,
+            titulo: "Novo evento pendente",
+            mensagem: "Você tem um novo evento aguardando aprovação",
+            tipo: "info",
+            lida: false,
+            data_criacao: "2023-06-02T14:30:00",
+            link: "/aprovacoes"
+          },
+          {
+            id: 3,
+            usuario_cpf: 12345678900,
+            titulo: "Evento rejeitado",
+            mensagem: "Seu evento de folga foi rejeitado",
+            tipo: "error",
+            lida: true,
+            data_criacao: "2023-05-28T09:15:00",
+            link: "/eventos/3"
+          }
+        ] as any,
+      }
+    }
+
+    if (endpoint.match(/\/api\/notificacoes\/\d+\/lida/) && options.method === "PUT") {
+      return {
+        data: { status: "success" } as any,
+      }
+    }
+
+    if (endpoint === "/api/notificacoes/lidas" && options.method === "PUT") {
+      return {
+        data: { status: "success" } as any,
+      }
+    }
+
+    if (endpoint.match(/\/api\/notificacoes\/\d+/) && options.method === "DELETE") {
+      return {
+        data: { status: "success" } as any,
       }
     }
 

@@ -17,14 +17,17 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash2, Clock, CheckCircle, XCircle } from "lucide-react"
+import { Pencil, Trash2, Clock, CheckCircle, XCircle, Eye, PlusCircle } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/hooks/use-toast"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Loader2 } from "lucide-react"
 
 export default function EventosPage() {
   const { user } = useAuth()
   const [eventos, setEventos] = useState<Evento[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("todos")
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -32,27 +35,22 @@ export default function EventosPage() {
       try {
         let response
         
-        if (user) {
-          if (user.tipo_usuario === "rh") {
-            // RH vê todos os eventos
-            response = await apiClient.getEventos()
-          } else if (user.flag_gestor === "S") {
-            // Gestores veem eventos do grupo
-            response = await apiClient.getEventos({ grupo_id: user.grupo_id })
-          } else {
-            // Usuário comum vê apenas seus eventos
-            response = await apiClient.getEventos({ cpf_usuario: user.cpf })
-          }
-          
-          if (response.data) {
-            setEventos(response.data)
-          }
+        if (activeTab === "pendentes") {
+          // Buscar apenas eventos pendentes
+          response = await apiClient.getEventos({ status: "pendente" })
+        } else {
+          // Buscar todos os eventos
+          response = await apiClient.getEventos()
+        }
+        
+        if (response.data) {
+          setEventos(response.data)
         }
       } catch (error) {
         console.error("Erro ao carregar eventos:", error)
         toast({
           title: "Erro",
-          description: "Não foi possível carregar os eventos",
+          description: "Não foi possível carregar a lista de eventos",
           variant: "destructive",
         })
       } finally {
@@ -60,10 +58,8 @@ export default function EventosPage() {
       }
     }
 
-    if (user) {
-      fetchEventos()
-    }
-  }, [user])
+    fetchEventos()
+  }, [activeTab])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -202,65 +198,54 @@ export default function EventosPage() {
     return user.tipo_usuario === "rh" || user.flag_gestor === "S"
   }
 
-  // Determinar o título da página com base no tipo de usuário
-  const getPageTitle = (): string => {
-    if (!user) return "Eventos"
-    
-    if (user.tipo_usuario === "rh") {
-      return "Todos os Eventos"
-    } else if (user.flag_gestor === "S") {
-      return "Eventos do Grupo"
-    } else {
-      return "Meus Eventos"
-    }
-  }
+  // Verificar se o usuário pode aprovar eventos (RH ou gestor)
+  const canApprove = user && (user.tipo_usuario === "rh" || user.flag_gestor === "S")
 
   return (
     <RouteGuard>
-      <AppLayout title={getPageTitle()} subtitle="Gestão de eventos e ausências">
-        <div className="space-y-6">
-          {/* Botão Nova Solicitação */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-medium">
-                {isLoading ? "Carregando..." : `Total: ${eventos.length} evento(s)`}
-              </h2>
-            </div>
-            <Button asChild>
-              <Link href="/eventos/novo">
-                <span className="hidden md:inline">Solicitar Novo Evento</span>
-                <span className="md:hidden">Novo</span>
-              </Link>
-            </Button>
-          </div>
+      <AppLayout title="Eventos" subtitle="Gerencie os eventos e ausências">
+        <div className="space-y-4">
+          {canApprove && (
+            <Tabs 
+              value={activeTab} 
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList>
+                <TabsTrigger value="todos">Todos os Eventos</TabsTrigger>
+                <TabsTrigger value="pendentes">Aprovações Pendentes</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
 
-          {/* Tabela de Eventos */}
           <Card>
             <CardHeader>
-              <CardTitle>Lista de Eventos</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>
+                  {activeTab === "pendentes" ? "Aprovações Pendentes" : "Lista de Eventos"}
+                </CardTitle>
+                <Button asChild>
+                  <Link href="/eventos/novo">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Novo Evento
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="py-20 text-center text-muted-foreground">
-                  <Clock className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                <div className="py-20 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                   <p className="mt-2">Carregando eventos...</p>
                 </div>
-              ) : eventos.length === 0 ? (
-                <div className="py-20 text-center text-muted-foreground">
-                  <p>Nenhum evento encontrado</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+              ) : eventos.length > 0 ? (
+                <div className="overflow-hidden rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        {(user?.tipo_usuario === "rh" || user?.flag_gestor === "S") && (
-                          <TableHead>Usuário</TableHead>
-                        )}
                         <TableHead>Tipo</TableHead>
-                        <TableHead>Início</TableHead>
-                        <TableHead>Fim</TableHead>
-                        <TableHead>Dias</TableHead>
+                        <TableHead>Usuário</TableHead>
+                        <TableHead>Período</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -268,70 +253,44 @@ export default function EventosPage() {
                     <TableBody>
                       {eventos.map((evento) => (
                         <TableRow key={evento.id}>
-                          {(user?.tipo_usuario === "rh" || user?.flag_gestor === "S") && (
-                            <TableCell className="font-medium">
-                              <div>
-                                <div>{evento.usuario_nome}</div>
-                                <div className="text-xs text-muted-foreground">{formatCPF(evento.cpf_usuario)}</div>
-                              </div>
-                            </TableCell>
-                          )}
                           <TableCell>
-                            <div>
+                            <div className="flex items-center gap-2">
                               <div 
-                                className="w-2 h-2 rounded-full inline-block mr-2"
+                                className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: getEventColor(evento.tipo_ausencia_desc, evento.status) }}
                               ></div>
                               {evento.tipo_ausencia_desc}
                             </div>
                           </TableCell>
-                          <TableCell>{formatDate(evento.data_inicio)}</TableCell>
-                          <TableCell>{formatDate(evento.data_fim)}</TableCell>
-                          <TableCell>{evento.total_dias}</TableCell>
-                          <TableCell>{getStatusBadge(evento.status)}</TableCell>
+                          <TableCell>{evento.usuario_nome}</TableCell>
+                          <TableCell>
+                            {formatDate(evento.data_inicio)} a {formatDate(evento.data_fim)}
+                            <div className="text-xs text-gray-500">{evento.total_dias} dias</div>
+                          </TableCell>
+                          <TableCell>
+                            {evento.status === "aprovado" && (
+                              <Badge className="bg-green-600">Aprovado</Badge>
+                            )}
+                            {evento.status === "rejeitado" && (
+                              <Badge variant="destructive">Rejeitado</Badge>
+                            )}
+                            {evento.status === "pendente" && (
+                              <Badge variant="outline" className="border-yellow-500 text-yellow-600">Pendente</Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link href={`/eventos/detalhes/${evento.id}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              
                               {evento.status === "pendente" && (
-                                <>
-                                  {canEditEvento(evento) && (
-                                    <Button variant="ghost" size="sm" asChild>
-                                      <Link href={`/eventos/editar/${evento.id}`}>
-                                        <Pencil className="h-4 w-4" />
-                                      </Link>
-                                    </Button>
-                                  )}
-
-                                  {canApproveEvents() && (
-                                    <>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                        onClick={() => handleAprovar(evento.id)}
-                                      >
-                                        <CheckCircle className="h-4 w-4" />
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => handleRejeitar(evento.id)}
-                                      >
-                                        <XCircle className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </>
-                              )}
-
-                              {canEditEvento(evento) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => handleExcluir(evento.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" asChild>
+                                  <Link href={`/eventos/editar/${evento.id}`}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Link>
                                 </Button>
                               )}
                             </div>
@@ -340,6 +299,14 @@ export default function EventosPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              ) : (
+                <div className="py-12 text-center border rounded-md">
+                  <p className="text-gray-500">
+                    {activeTab === "pendentes" 
+                      ? "Não há eventos pendentes de aprovação" 
+                      : "Nenhum evento encontrado"}
+                  </p>
                 </div>
               )}
             </CardContent>

@@ -14,6 +14,8 @@ import {
   CalendarDays,
   Shield,
   User,
+  UserPlus,
+  Bell,
 } from "lucide-react"
 import type { NavigationSection } from "@/types/navigation"
 
@@ -48,15 +50,14 @@ export const navigationConfig: NavigationSection[] = [
       },
       {
         name: "Aprovações",
-        href: "/eventos/aprovacoes",
-        icon: UserCheck,
-        requiredUserType: "rh",
-      },
-      {
-        name: "Aprovações do Grupo",
-        href: "/eventos/aprovacoes-grupo",
+        href: "/aprovacoes",
         icon: UserCheck,
         requireGestor: true,
+      },
+      {
+        name: "Notificações",
+        href: "/notificacoes",
+        icon: Bell,
       },
     ],
   },
@@ -111,27 +112,9 @@ export const navigationConfig: NavigationSection[] = [
     title: "Configurações",
     items: [
       {
-        name: "Tipos de Ausência",
-        href: "/configuracoes/tipos-ausencia",
-        icon: Clock,
-        requiredUserType: "rh",
-      },
-      {
-        name: "Turnos",
-        href: "/configuracoes/turnos",
+        name: "Config. Ausências",
+        href: "/configuracoes",
         icon: Settings,
-        requiredUserType: "rh",
-      },
-      {
-        name: "Feriados",
-        href: "/configuracoes/feriados",
-        icon: MapPin,
-        requiredUserType: "rh",
-      },
-      {
-        name: "UFs",
-        href: "/configuracoes/ufs",
-        icon: MapPin,
         requiredUserType: "rh",
       },
     ],
